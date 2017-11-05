@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Click To Contain",
-  "version": "0.0.1",
+  "version": "0.0.1alpha",
   "description": "Let's external links open in random containers",
   "author": "LoveIsGrief",
   "applications": {
