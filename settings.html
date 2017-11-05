@@ -1,11 +1,46 @@
 <!DOCTYPE html>
 
 <html>
-<head>
-    <meta charset="utf-8">
-    <script src="settings.js"></script>
-</head>
-<body>
-<!--TODO settings-->
-</body>
+    <head>
+        <meta charset="utf-8">
+        <script src="lib.js"></script>
+        <link rel="stylesheet" href="settings.css">
+    </head>
+    <body>
+        <div class="enable-extension-container">
+            <label for="enable-extension">Enable extension</label>
+            <input type="checkbox" id="enable-extension">
+        </div>
+        <div id="creation-form-container">
+            <h1>Create</h1>
+        </div>
+        <div id="update-forms-container">
+            <h1>Update</h1>
+        </div>
+
+        <template id="form-template">
+            <div id="form-creation" class="form">
+                <input type="hidden" name="id" id="id">
+                <div class="enabled-container">
+                    <label for="enabled-checkbox">Enabled</label>
+                    <input
+                            id="enabled-checkbox"
+                            type="checkbox"
+                            name="enabled"
+                            checked="checked"
+                    >
+                </div>
+                <div class="domain-regexs-container">
+                    <label for="domain-regexs">Domain Regexs</label>
+                    <textarea name="domain-regexs" id="domain-regexs" cols="30"
+                              rows="10"></textarea>
+                </div>
+                <div class="buttons-container">
+                    <button id="submit">Create</button>
+                    <button id="remove" style="display: none">Remove</button>
+                </div>
+            </div>
+        </template>
+        <script src="settings.js"></script>
+    </body>
 </html>

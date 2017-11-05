@@ -61,34 +61,21 @@ function sullyLinks() {
     let $links = document.querySelectorAll("a");
     console.log("links", $links.length)
     for (var i = 0; i < $links.length; i++) {
-        var $a = $links[i];
-        if (new URL($a.href).host !== thisHost) {
-            $a.addEventListener("click", onClickLink)
+        try {
+            var $a = $links[i];
+            // TODO use the regexs here and ignore javascript: or about: links
+            if (new URL($a.href).host !== thisHost) {
+                $a.addEventListener("click", onClickLink)
+            }
+        } catch (e) {
+            console.error(e);
         }
-
     }
 }
 
 
-function main(settings) {
-    settings = {
-        enabled: true,
-        groups: [
-            {
-                enabled: true,
-                domainsRegexs: [
-                    "^https?://(www\\.)?reddit\\.com"
-                ]
-            },
-            {
-                enabled: true,
-                domainsRegexs: [
-                    "mozilla"
-                ]
-            }
-        ]
-    }
-    let fineForThis = settings.enabled && (settings.groups || []).map(makeClassInstantiator(Group)).find(canUseGroup);
+function main({settings}) {
+    let fineForThis = settings.enabled && Object.values(settings.groups || {}).map(makeClassInstantiator(Group)).find(canUseGroup);
     if (fineForThis) {
         sullyLinks();
     }

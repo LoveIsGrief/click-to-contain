@@ -1,0 +1,23 @@
+.form{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.form .domain-regexs-container {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 2;
+}
+
+.form .buttons-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* space-between doesn't seem to want to work...*/
+.form .buttons-container * {
+    margin: 10px;
+}

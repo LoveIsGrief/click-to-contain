@@ -35,5 +35,8 @@
     "scripts": [
       "background.js"
     ]
+  },
+  "options_ui": {
+    "page": "settings.html"
   }
 }
