@@ -16,23 +16,25 @@ function makeClassInstantiator(_class) {
     }
 }
 
+function makeMatcher(toMatch) {
+    /**
+     *
+     * @param regex {RegExp}
+     */
+    return function matchesRegex(regex) {
+        return regex.test(toMatch)
+    }
 
-/**
- *
- * @param regex {RegExp}
- */
-function matchesRegex(regex) {
-    return regex.test(window.location)
 }
 
-
-function canUseGroup(group) {
-
+function canUseGroup(group, toMatch) {
+    toMatch = typeof toMatch === "string" ? toMatch : window.location;
     if (!group.enabled) {
         return
     }
-    return group.domainsRegexs.find(matchesRegex)
+    return group.domainsRegexs.find(makeMatcher(toMatch))
 }
+
 
 function onClickLink(event) {
     try {
@@ -54,30 +56,56 @@ function onClickLink(event) {
 
 
 /**
- * Listen to each click on a link and make it open a new tab in a new randomized container
+ * Cleans a link of most click and mouse handler impurities
+ *
+ * (in preparation to be properly sullied)
+ * @param $a {Node}
+ * @returns {Node}
  */
-function sullyLinks() {
-    let thisHost = new URL(window.location).host;
+function getCleanLink($a) {
+    // Clone to remove all other event listeners in javascript
+    let $clone = $a.cloneNode(true);
+
+    // Remove click and mouse handlers in HTML
+    Array.prototype.filter.call($clone.attributes, (attr) => {
+        return attr.name.startsWith("onmouse") || attr.name.startsWith("onclick")
+    }).forEach((attr) => {
+        $clone.removeAttribute(attr.name)
+    })
+    $a.replaceWith($clone);
+    return $clone
+}
+
+/**
+ * Listen to each click on a link and make it open a new tab in a new randomized container
+ * @param group {Group}
+ */
+function sullyLinks(group) {
     let $links = document.querySelectorAll("a");
-    console.log("links", $links.length)
+    let sulliedLinkCount = 0;
     for (var i = 0; i < $links.length; i++) {
         try {
             var $a = $links[i];
-            // TODO use the regexs here and ignore javascript: or about: links
-            if (new URL($a.href).host !== thisHost) {
-                $a.addEventListener("click", onClickLink)
+            if (!canUseGroup(group, $a.href)) {
+                getCleanLink($a).addEventListener("click", onClickLink);
+                sulliedLinkCount++;
             }
         } catch (e) {
             console.error(e);
         }
     }
+    console.info(`Sullied ${sulliedLinkCount} links`);
 }
 
 
 function main({settings}) {
-    let fineForThis = settings.enabled && Object.values(settings.groups || {}).map(makeClassInstantiator(Group)).find(canUseGroup);
-    if (fineForThis) {
-        sullyLinks();
+    if(!settings.enabled){
+        return
+    }
+    let applicableGroup = Object.values(settings.groups || {})
+        .map(makeClassInstantiator(Group)).find(canUseGroup);
+    if (applicableGroup) {
+        sullyLinks(applicableGroup);
     }
 }
 
