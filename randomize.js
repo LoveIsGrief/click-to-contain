@@ -2,6 +2,8 @@ const backgroundPort = browser.runtime.connect({
     name: "content-to-background"
 });
 
+const ACCEPTED_PROTOCOLS = ["ftp", "file", "http", "https"].map(protocol => `${protocol}:`);
+
 class Group {
     constructor({enabled, domainsRegexs}) {
         this.enabled = enabled || false;
@@ -72,8 +74,19 @@ function getCleanLink($a) {
     }).forEach((attr) => {
         $clone.removeAttribute(attr.name)
     })
+    $clone.style.border = "strike red 1px";
     $a.replaceWith($clone);
     return $clone
+}
+
+/**
+ * Don't allow creating containers for any ol' protocol!
+ *
+ * @param url {String}
+ * @returns {Boolean}
+ */
+function isValidProtocol(url) {
+    return url && ACCEPTED_PROTOCOLS.includes((new URL(url)).protocol)
 }
 
 /**
@@ -86,7 +99,7 @@ function sullyLinks(group) {
     for (var i = 0; i < $links.length; i++) {
         try {
             var $a = $links[i];
-            if (!canUseGroup(group, $a.href)) {
+            if (isValidProtocol($a.href) && !canUseGroup(group, $a.href)) {
                 getCleanLink($a).addEventListener("click", onClickLink);
                 sulliedLinkCount++;
             }
@@ -99,7 +112,7 @@ function sullyLinks(group) {
 
 
 function main({settings}) {
-    if(!settings.enabled){
+    if (!settings.enabled) {
         return
     }
     let applicableGroup = Object.values(settings.groups || {})
