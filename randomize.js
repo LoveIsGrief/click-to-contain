@@ -38,22 +38,25 @@ function canUseGroup(group, toMatch) {
 }
 
 
-function onClickLink(event) {
-    try {
-        // TODO improve contextualIdentities doc
-        // https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/contextualIdentities/create
-        // Impossible to use contextualIdentities in contentScript
-        backgroundPort.postMessage({
-            command: "openTab",
-            data: {
-                url: event.target.href
-            }
-        })
-    } catch (e) {
-        console.error("problem while posting message", e)
+function createOnClickLink(url) {
+    return function onClickLink(event) {
+        try {
+            // TODO improve contextualIdentities doc
+            // https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/contextualIdentities/create
+            // Impossible to use contextualIdentities in contentScript
+            backgroundPort.postMessage({
+                command: "openTab",
+                data: {
+                    url: url
+                }
+            })
+        } catch (e) {
+            console.error("problem while posting message", e)
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
     }
-    event.preventDefault();
-    event.stopPropagation();
 }
 
 
@@ -74,7 +77,6 @@ function getCleanLink($a) {
     }).forEach((attr) => {
         $clone.removeAttribute(attr.name)
     })
-    $clone.style.border = "strike red 1px";
     $a.replaceWith($clone);
     return $clone
 }
@@ -100,7 +102,11 @@ function sullyLinks(group) {
         try {
             var $a = $links[i];
             if (isValidProtocol($a.href) && !canUseGroup(group, $a.href)) {
-                getCleanLink($a).addEventListener("click", onClickLink);
+                let $cleanLink = getCleanLink($a);
+                $cleanLink.addEventListener("click", createOnClickLink($a.href), true);
+                // Attempt to remove possibility to add listeners again
+                $cleanLink.addEventListener = function () {
+                }
                 sulliedLinkCount++;
             }
         } catch (e) {
