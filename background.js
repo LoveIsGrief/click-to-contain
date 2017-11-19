@@ -74,3 +74,13 @@ browser.tabs.onRemoved.addListener((tabId, {windowId, isWindowClosing}) => {
         delete tabContexts[tabId]
     }
 })
+
+
+// Clean up left over containers
+browser.contextualIdentities.query({}).then((contexts) => {
+    contexts.filter((context) => {
+        return context.name.startsWith(CONTEXT_PREFIX)
+    }).forEach((context) => {
+        browser.contextualIdentities.remove(context.cookieStoreId)
+    })
+})
