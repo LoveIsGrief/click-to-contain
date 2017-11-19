@@ -36,8 +36,9 @@ var contentPort;
 /**
  * Opens a tab in a random context / cookie store
  * @param url {String}
+ * @param openerTabId {Number} ID of the tab which is requesting to open a new one
  */
-function cmdOpenTab({url}) {
+function cmdOpenTab({url}, openerTabId) {
     browser.contextualIdentities.create({
         name: CONTEXT_PREFIX + Date.now(),
         color: pickRandomly(CONTEXT_COLORS),
@@ -45,7 +46,8 @@ function cmdOpenTab({url}) {
     }).then((contextIdentity) => {
         browser.tabs.create({
             url: url,
-            cookieStoreId: contextIdentity.cookieStoreId
+            cookieStoreId: contextIdentity.cookieStoreId,
+            openerTabId: openerTabId
         }).then((tab) => {
             tabContexts[tab.id] = contextIdentity.cookieStoreId;
         }).catch((error) => {
@@ -58,9 +60,9 @@ function cmdOpenTab({url}) {
 
 function connected(p) {
     contentPort = p;
-    contentPort.onMessage.addListener(({command, data}) => {
+    contentPort.onMessage.addListener(({command, data}, {sender}) => {
         if (command === "openTab") {
-            cmdOpenTab(data)
+            cmdOpenTab(data, sender.tab.id)
         }
     });
 }
