@@ -33,10 +33,16 @@ function pickRandomly(array) {
 
 var contentPort;
 
+function handleMessages({command, data}, {sender}) {
+    if (command === "openTab") {
+        cmdOpenTab(data, sender.tab ? sender.tab.id : null)
+    }
+}
+
 /**
  * Opens a tab in a random context / cookie store
  * @param url {String}
- * @param openerTabId {Number} ID of the tab which is requesting to open a new one
+ * @param openerTabId {Number=} ID of the tab which is requesting to open a new one
  */
 function cmdOpenTab({url}, openerTabId) {
     browser.contextualIdentities.create({
@@ -60,11 +66,7 @@ function cmdOpenTab({url}, openerTabId) {
 
 function connected(p) {
     contentPort = p;
-    contentPort.onMessage.addListener(({command, data}, {sender}) => {
-        if (command === "openTab") {
-            cmdOpenTab(data, sender.tab.id)
-        }
-    });
+    contentPort.onMessage.addListener(handleMessages);
 }
 
 browser.runtime.onConnect.addListener(connected);
@@ -85,4 +87,9 @@ browser.contextualIdentities.query({}).then((contexts) => {
     }).forEach((context) => {
         browser.contextualIdentities.remove(context.cookieStoreId)
     })
+})
+
+browser.runtime.onConnectExternal.addListener((port) => {
+    console.log(port)
+    port.onMessage.addListener(handleMessages)
 })
