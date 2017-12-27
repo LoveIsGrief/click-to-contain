@@ -90,6 +90,6 @@ browser.contextualIdentities.query({}).then((contexts) => {
 })
 
 browser.runtime.onConnectExternal.addListener((port) => {
-    console.log(port)
+    console.log(`External connection from ${port.sender.id}`)
     port.onMessage.addListener(handleMessages)
 })
