@@ -37,9 +37,23 @@ function canUseGroup(group, toMatch) {
     return group.domainsRegexs.find(makeMatcher(toMatch))
 }
 
+/**
+ * @typedef {Function} RandomContainerFunction
+ *
+ * A function that will request the background script to create a random container with the {@see url}
+ *
+ * @param {Event} event
+ * @field {String} url - The URL to use when opening a new container
+ *
+ */
 
-function createOnClickLink(url) {
-    return function onClickLink(event) {
+/**
+ *
+ * @param {String} url
+ * @returns {RandomContainerFunction}
+ */
+function createOpenInRandomOnClick(url) {
+    function onClickLink(event) {
         try {
             // TODO improve contextualIdentities doc
             // https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/contextualIdentities/create
@@ -47,38 +61,18 @@ function createOnClickLink(url) {
             backgroundPort.postMessage({
                 command: "openTab",
                 data: {
-                    url: url
+                    url: onClickLink.url
                 }
             })
         } catch (e) {
-            console.error("problem while posting message", e)
+            console.error("problem while posting message on click", e)
         }
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
     }
-}
-
-
-/**
- * Cleans a link of most click and mouse handler impurities
- *
- * (in preparation to be properly sullied)
- * @param $a {Node}
- * @returns {Node}
- */
-function getCleanLink($a) {
-    // Clone to remove all other event listeners in javascript
-    let $clone = $a.cloneNode(true);
-
-    // Remove click and mouse handlers in HTML
-    Array.prototype.filter.call($clone.attributes, (attr) => {
-        return attr.name.startsWith("onmouse") || attr.name.startsWith("onclick")
-    }).forEach((attr) => {
-        $clone.removeAttribute(attr.name)
-    })
-    $a.replaceWith($clone);
-    return $clone
+    onClickLink.url = url;
+    return onClickLink
 }
 
 /**
@@ -94,7 +88,7 @@ function isValidProtocol(url) {
 
 /**
  * Keeps track of the nodes we sullied and which click-function they have.
- * @type {Map<Node, callable>}
+ * @type {Map<Node, RandomContainerFunction>}
  */
 let sulliedMap = new Map();
 
@@ -107,6 +101,8 @@ function sullyLinks(group) {
     var observer = new MutationObserver((mutations) => {
         let sulliedLinks = 0;
         mutations
+            // Reduce because the logs pointed to some elements of the array being array of MutationRecords
+            // … or I was reading the logs wrong
             .reduce((acc, curr) => {
                 if (Array.isArray(curr)) {
                     acc = acc.concat(curr)
@@ -116,20 +112,21 @@ function sullyLinks(group) {
                 return acc
             }, [])
             .forEach((mutation) => {
+                // Include the target, since its attribute might've changed
                 [mutation.target].concat(Array.prototype.map.call(mutation.addedNodes, n => n))
                     .filter(node => node.nodeName.toLowerCase() === "a")
                     .filter($a => isValidProtocol($a.href) && !canUseGroup(group, $a.href))
                     .forEach(($a) => {
                         try {
-                            //Update the click function so that the old one isn't the master or create a new one
-                            let oldOnClick = sulliedMap.get($a);
-                            if (oldOnClick) {
-                                sulliedMap.delete($a);
-                                $a.removeEventListener("click", oldOnClick, true);
+                            // Use a custom click function that is called before any other onclick functions
+                            let onClick = sulliedMap.get($a);
+                            if (onClick) {
+                                onClick.url = $a.href;
+                            } else {
+                                onClick = createOpenInRandomOnClick($a.href);
+                                sulliedMap.set($a, onClick);
+                                $a.addEventListener("click", onClick, true);
                             }
-                            let newOnclick = createOnClickLink($a.href);
-                            sulliedMap.set($a, newOnclick);
-                            $a.addEventListener("click", newOnclick, true);
                             sulliedLinks++;
                         } catch (e) {
                             console.error("Problem when trying to sully a link", e)
