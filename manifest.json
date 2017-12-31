@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Click To Contain",
-  "version": "0.0.7alpha",
+  "version": "0.1.0alpha",
   "description": "Let's external links open in random containers",
   "author": "LoveIsGrief",
   "applications": {
@@ -20,7 +20,8 @@
       "all_frames": true,
       "js": [
         "randomize.js"
-      ]
+      ],
+      "run_at": "document_start"
     }
   ],
   "permissions": [
