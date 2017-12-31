@@ -20,7 +20,8 @@
       "all_frames": true,
       "js": [
         "randomize.js"
-      ]
+      ],
+      "run_at": "document_start"
     }
   ],
   "permissions": [

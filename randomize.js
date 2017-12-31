@@ -91,29 +91,54 @@ function isValidProtocol(url) {
     return url && ACCEPTED_PROTOCOLS.includes((new URL(url)).protocol)
 }
 
+
 /**
- * Listen to each click on a link and make it open a new tab in a new randomized container
+ * Keeps track of the nodes we sullied and which click-function they have.
+ * @type {Map<Node, callable>}
+ */
+let sulliedMap = new Map();
+
+/**
+ * Watch the document for insertions and changes to anchor tags and try to force them opening in new containers
+ *
  * @param group {Group}
  */
 function sullyLinks(group) {
-    let $links = document.querySelectorAll("a");
-    let sulliedLinkCount = 0;
-    for (var i = 0; i < $links.length; i++) {
-        try {
-            var $a = $links[i];
-            if (isValidProtocol($a.href) && !canUseGroup(group, $a.href)) {
-                let $cleanLink = getCleanLink($a);
-                $cleanLink.addEventListener("click", createOnClickLink($a.href), true);
-                // Attempt to remove possibility to add listeners again
-                $cleanLink.addEventListener = function () {
+    var observer = new MutationObserver((mutations) => {
+        let sulliedLinks = 0;
+        mutations
+            .reduce((acc, curr) => {
+                if (Array.isArray(curr)) {
+                    acc = acc.concat(curr)
+                } else {
+                    acc.push(curr);
                 }
-                sulliedLinkCount++;
-            }
-        } catch (e) {
-            console.error(e);
-        }
-    }
-    console.info(`Sullied ${sulliedLinkCount} links`);
+                return acc
+            }, [])
+            .forEach((mutation) => {
+                [mutation.target].concat(Array.prototype.map.call(mutation.addedNodes, n => n))
+                    .filter(node => node.nodeName.toLowerCase() === "a")
+                    .filter($a => isValidProtocol($a.href) && !canUseGroup(group, $a.href))
+                    .forEach(($a) => {
+                        try {
+                            //Update the click function so that the old one isn't the master or create a new one
+                            let oldOnClick = sulliedMap.get($a);
+                            if (oldOnClick) {
+                                sulliedMap.delete($a);
+                                $a.removeEventListener("click", oldOnClick, true);
+                            }
+                            let newOnclick = createOnClickLink($a.href);
+                            sulliedMap.set($a, newOnclick);
+                            $a.addEventListener("click", newOnclick, true);
+                            sulliedLinks++;
+                        } catch (e) {
+                            console.error("Problem when trying to sully a link", e)
+                        }
+                    })
+            })
+        console.log("sullied", sulliedLinks);
+    });
+    observer.observe(document, {childList: true, subtree: true, attributeFilter: ["href"]});
 }
 
 
